@@ -724,7 +724,7 @@ def get_samtools_exec():
 	else:
 		return 'samtools'
 
-HACK-2: assume use of samtools v1.x as checking not functioning
+# HACK-2: assume use of samtools v1.x as checking not functioning
 def get_pileup(args, mapping_files_pre, raw_bowtie_sam, bowtie_sam_mod, fasta, pileup_file):
 	# Analyse output with SAMtools
 	samtools_exec = get_samtools_exec()
