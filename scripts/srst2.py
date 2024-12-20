@@ -4,14 +4,14 @@
 # Python Version 2.7.5
 #
 # Authors - Michael Inouye (minouye@unimelb.edu.au), Harriet Dashnow (h.dashnow@gmail.com),
-#	Kathryn Holt (kholt@unimelb.edu.au), Bernie Pope (bjpope@unimelb.edu.au)
+# Kathryn Holt (kholt@unimelb.edu.au), Bernie Pope (bjpope@unimelb.edu.au)
 #
 # see LICENSE.txt for the license
 #
 # Dependencies:
-#	bowtie2	   http://bowtie-bio.sourceforge.net/bowtie2/index.shtml version 2.1.0 or greater
-#	SAMtools   http://samtools.sourceforge.net Version: 0.1.18 or greater (note optimal results are obtained with 0.1.18 rather than later versions)
-#	SciPy	http://www.scipy.org/install.html
+# bowtie2	   http://bowtie-bio.sourceforge.net/bowtie2/index.shtml version 2.1.0 or greater
+# SAMtools   http://samtools.sourceforge.net Version: 0.1.18 or greater (note optimal results are obtained with 0.1.18 rather than later versions)
+# SciPy	http://www.scipy.org/install.html
 #
 # Git repository: https://github.com/katholt/srst2/
 # README: https://github.com/katholt/srst2/blob/master/README.md
@@ -19,7 +19,7 @@
 # Paper: http://genomemedicine.com/content/6/11/90
 
 
-from argparse import (ArgumentParser, FileType)
+from argparse import ArgumentParser
 import logging
 from subprocess import call, check_output, CalledProcessError, STDOUT
 import os, sys, re, collections, operator
@@ -29,7 +29,7 @@ from itertools import groupby
 from operator import itemgetter
 from collections import OrderedDict
 try:
-	from version import srst2_version
+	from .version import srst2_version
 except:
 	srst2_version = "version unknown"
 
@@ -46,7 +46,7 @@ def parse_args():
 
 	# Read inputs
 	parser.add_argument(
-		'--input_se', nargs='+',type=str, required=False,
+		'--input_se', nargs='+', type=str, required=False,
 		help='Single end read file(s) for analysing (may be gzipped)')
 	parser.add_argument(
 		'--input_pe', nargs='+', type=str, required=False,
@@ -67,22 +67,22 @@ def parse_args():
 		help='Character(s) separating gene name from allele number in MLST database (default "-", as in arcc-1)', default="-")
 	parser.add_argument('--mlst_definitions', type=str, required=False,
 		help='ST definitions for MLST scheme (required if mlst_db supplied and you want to calculate STs)')
-	parser.add_argument('--mlst_max_mismatch', type=str, required=False, default = "10",
+	parser.add_argument('--mlst_max_mismatch', type=str, required=False, default="10",
 		help='Maximum number of mismatches per read for MLST allele calling (default 10)')
 
 	# Gene database parameters
 	parser.add_argument('--gene_db', type=str, required=False, nargs='+', help='Fasta file/s for gene databases (optional)')
 	parser.add_argument('--no_gene_details', action="store_false", required=False, help='Switch OFF verbose reporting of gene typing')
-	parser.add_argument('--gene_max_mismatch', type=str, required=False, default = "10",
+	parser.add_argument('--gene_max_mismatch', type=str, required=False, default="10",
 		help='Maximum number of mismatches per read for gene detection and allele calling (default 10)')
 
 	# Cutoffs for scoring/heuristics
-	parser.add_argument('--min_coverage', type=float, required=False, help='Minimum %%coverage cutoff for gene reporting (default 90)',default=90)
-	parser.add_argument('--max_divergence', type=float, required=False, help='Maximum %%divergence cutoff for gene reporting (default 10)',default=10)
-	parser.add_argument('--min_depth', type=float, required=False, help='Minimum mean depth to flag as dubious allele call (default 5)',default=5)
-	parser.add_argument('--min_edge_depth', type=float, required=False, help='Minimum edge depth to flag as dubious allele call (default 2)',default=2)
-	parser.add_argument('--prob_err', type=float, help='Probability of sequencing error (default 0.01)',default=0.01)
-	parser.add_argument('--truncation_score_tolerance', type=float, help='%% increase in score allowed to choose non-truncated allele',default=0.15)
+	parser.add_argument('--min_coverage', type=float, required=False, help='Minimum %%coverage cutoff for gene reporting (default 90)', default=90)
+	parser.add_argument('--max_divergence', type=float, required=False, help='Maximum %%divergence cutoff for gene reporting (default 10)', default=10)
+	parser.add_argument('--min_depth', type=float, required=False, help='Minimum mean depth to flag as dubious allele call (default 5)', default=5)
+	parser.add_argument('--min_edge_depth', type=float, required=False, help='Minimum edge depth to flag as dubious allele call (default 2)', default=2)
+	parser.add_argument('--prob_err', type=float, help='Probability of sequencing error (default 0.01)', default=0.01)
+	parser.add_argument('--truncation_score_tolerance', type=float, help='%% increase in score allowed to choose non-truncated allele', default=0.15)
 
 	# Mapping parameters for bowtie2
 	parser.add_argument('--stop_after', type=str, required=False, help='Stop mapping after this number of reads have been mapped (otherwise map all)')
@@ -106,17 +106,17 @@ def parse_args():
 
 	# Run options
 	parser.add_argument('--use_existing_bowtie2_sam', action="store_true", required=False,
-		help='Use existing SAM file generated by Bowtie2 if available, otherwise they will be generated') # to facilitate testing of filtering Bowtie2 output
+		help='Use existing SAM file generated by Bowtie2 if available, otherwise they will be generated')  # to facilitate testing of filtering Bowtie2 output
 	parser.add_argument('--use_existing_pileup', action="store_true", required=False,
-		help='Use existing pileups if available, otherwise they will be generated') # to facilitate testing of rescoring from pileups
+		help='Use existing pileups if available, otherwise they will be generated')  # to facilitate testing of rescoring from pileups
 	parser.add_argument('--use_existing_scores', action="store_true", required=False,
-		help='Use existing scores files if available, otherwise they will be generated') # to facilitate testing of reporting from scores
+		help='Use existing scores files if available, otherwise they will be generated')  # to facilitate testing of reporting from scores
 	parser.add_argument('--keep_interim_alignment', action="store_true", required=False, default=False,
-		help='Keep interim files (sam & unsorted bam), otherwise they will be deleted after sorted bam is created') # to facilitate testing of sam processing
+		help='Keep interim files (sam & unsorted bam), otherwise they will be deleted after sorted bam is created')  # to facilitate testing of sam processing
 	parser.add_argument('--threads', type=int, required=False, default=1,
 		help='Use multiple threads in Bowtie and Samtools')
-#	parser.add_argument('--keep_final_alignment', action="store_true", required=False, default=False,
-#		help='Keep interim files (sam & unsorted bam), otherwise they will be deleted after sorted bam is created') # to facilitate testing of sam processing
+# parser.add_argument('--keep_final_alignment', action="store_true", required=False, default=False,
+# help='Keep interim files (sam & unsorted bam), otherwise they will be deleted after sorted bam is created') # to facilitate testing of sam processing
 
 	# Compile previous output files
 	parser.add_argument('--prev_output', nargs='+', type=str, required=False,
@@ -145,7 +145,7 @@ def run_command(command, **kwargs):
 
 def bowtie_index(fasta_files):
 	'Build a bowtie2 index from the given input fasta(s)'
-	check_bowtie_version()
+#	check_bowtie_version()
 	for fasta in fasta_files:
 		built_index = fasta + '.1.bt2'
 		if os.path.exists(built_index):
@@ -305,8 +305,8 @@ def parse_fai(fai_file,db_type,delimiter):
 				gene_clusters.append(gene_cluster)
 
 	if len(delimiter_check) > 0:
-		print "Warning! MLST delimiter is " + delimiter + " but these genes may violate the pattern and cause problems:"
-		print ",".join(delimiter_check)
+		print("Warning! MLST delimiter is " + delimiter + " but these genes may violate the pattern and cause problems:")
+		print(",".join(delimiter_check))
 
 	return size, gene_clusters, unique_gene_symbols, unique_allele_symbols, gene_cluster_symbols
 
@@ -504,17 +504,17 @@ def score_alleles(args, mapping_files_pre, hash_alignment, hash_max_depth, hash_
 		avg_depth_allele, coverage_allele, mismatch_allele, indel_allele, missing_allele,
 		size_allele, next_to_del_depth_allele, run_type,unique_gene_symbols, unique_allele_symbols):
 	# sort into hash for each gene locus
-	depth_by_gene = group_allele_dict_by_gene(dict( (allele,val) for (allele,val) in avg_depth_allele.items() \
+	depth_by_gene = group_allele_dict_by_gene(dict( (allele,val) for (allele,val) in list(avg_depth_allele.items()) \
 			if (run_type == "mlst") or (coverage_allele[allele] > args.min_coverage) ),
 			run_type,args,
 			unique_gene_symbols,unique_allele_symbols)
 	stat_depth_by_gene = dict(
-			(gene,max(alleles.values())) for (gene,alleles) in depth_by_gene.items()
+			(gene,max(alleles.values())) for (gene,alleles) in list(depth_by_gene.items())
 			)
 	allele_to_gene = dict_of_dicts_inverted_ind(depth_by_gene)
 
 	if args.save_scores:
-		scores_output = file(mapping_files_pre + '.scores', 'w')
+		scores_output = open(mapping_files_pre + '.scores', 'w')
 		scores_output.write("Allele\tScore\tAvg_depth\tEdge1_depth\tEdge2_depth\tPercent_coverage\tSize\tMismatches\tIndels\tTruncated_bases\tDepthNeighbouringTruncation\tmaxMAF\tLeastConfident_Rate\tLeastConfident_Mismatches\tLeastConfident_Depth\tLeastConfident_Pvalue\n")
 
 	scores = {} # key = allele, value = score
@@ -552,7 +552,7 @@ def score_alleles(args, mapping_files_pre, hash_alignment, hash_max_depth, hash_
 			# Fit linear model to observed Pval distribution vs expected Pval distribution (QQ plot)
 			pvals.sort(reverse=True)
 			len_obs_pvals = len(pvals)
-			exp_pvals = range(1, len_obs_pvals + 1)
+			exp_pvals = list(range(1, len_obs_pvals + 1))
 			exp_pvals2 = [-log(float(ep) / (len_obs_pvals + 1), 10) for ep in exp_pvals]
 
 			# Slope is score
@@ -610,14 +610,15 @@ def check_command_version(command_list, version_identifier, command_name, requir
 		exit(-1)
 
 
+# HACK: disable bowtie and samtools version checking as this currently isn't working for python3
 # allow multiple specific versions that have been specifically tested
-def check_bowtie_version():
-	return check_command_versions([get_bowtie_execs()[0], '--version'], 'version ', 'bowtie',
-								  ['2.1.0','2.2.3','2.2.4','2.2.5','2.2.6','2.2.7','2.2.8','2.2.9'])
+#def check_bowtie_version():
+#	return check_command_versions([get_bowtie_execs()[0], '--version'], 'version ', 'bowtie',
+#								  ['2.1.0','2.2.3','2.2.4','2.2.5','2.2.6','2.2.7','2.2.8','2.2.9','2.5.1'])
 
 def check_samtools_version():
 	return check_command_versions([get_samtools_exec()], 'Version: ', 'samtools',
-								  ['0.1.18','0.1.19','1.0','1.1','1.2','1.3','(0.1.18 is '
+								  ['0.1.18','0.1.19','1.0','1.1','1.2','1.3','1.10','(0.1.18 is '
 																			 'recommended)'])
 
 def check_command_versions(command_list, version_prefix, command_name, required_versions):
@@ -668,8 +669,8 @@ def run_bowtie(mapping_files_pre,sample_name,fastqs,args,db_name,db_full_path):
 
 	logging.info("Starting mapping with bowtie2")
 
-	check_bowtie_version()
-	check_samtools_version()
+#	check_bowtie_version() see HACK above
+#	check_samtools_version() see HACK above
 
 	command = [get_bowtie_execs()[0]]
 
@@ -697,7 +698,7 @@ def run_bowtie(mapping_files_pre,sample_name,fastqs,args,db_name,db_full_path):
 		try:
 			command += ['-u',str(int(args.stop_after))]
 		except ValueError:
-			print "WARNING. You asked to stop after mapping '" + args.stop_after + "' reads. I don't understand this, and will map all reads. Please speficy an integer with --stop_after or leave this as default to map 1 million reads."
+			print("WARNING. You asked to stop after mapping '" + args.stop_after + "' reads. I don't understand this, and will map all reads. Please speficy an integer with --stop_after or leave this as default to map 1 million reads.")
 
 	if args.other:
 		x = args.other
@@ -723,27 +724,28 @@ def get_samtools_exec():
 	else:
 		return 'samtools'
 
+HACK-2: assume use of samtools v1.x as checking not functioning
 def get_pileup(args, mapping_files_pre, raw_bowtie_sam, bowtie_sam_mod, fasta, pileup_file):
 	# Analyse output with SAMtools
 	samtools_exec = get_samtools_exec()
-	samtools_v1 = check_samtools_version().split('.')[0] == '1'  # Usage changed in version 1.0
+#	samtools_v1 = check_samtools_version().split('.')[0] == '1'  # Usage changed in version 1.0
 	logging.info('Processing Bowtie2 output with SAMtools...')
 	logging.info('Generate and sort BAM file...')
 	out_file_bam = mapping_files_pre + ".unsorted.bam"
 	view_command = [samtools_exec, 'view']
-	if args.threads > 1 and samtools_v1:
+	if args.threads > 1: #and samtools_v1:
 		view_command += ['-@', str(args.threads)]
 	view_command += ['-b', '-o', out_file_bam, '-q', str(args.mapq), '-S', bowtie_sam_mod]
 	run_command(view_command)
 	out_file_bam_sorted = mapping_files_pre + ".sorted"
 	sort_command = [samtools_exec, 'sort']
-	if samtools_v1:
-		if args.threads > 1:
-			sort_command += ['-@', str(args.threads)]
-		temp = mapping_files_pre + ".sort_temp"
-		sort_command += ['-o', out_file_bam_sorted + '.bam', '-O', 'bam', '-T', temp, out_file_bam]
-	else:  # samtools 0.x
-		sort_command += [out_file_bam, out_file_bam_sorted]
+#	if samtools_v1:
+#		if args.threads > 1:
+#			sort_command += ['-@', str(args.threads)]
+	temp = mapping_files_pre + ".sort_temp"
+	sort_command += ['-o', out_file_bam_sorted + '.bam', '-O', 'bam', '-T', temp, out_file_bam]
+#	else:  # samtools 0.x
+#		sort_command += [out_file_bam, out_file_bam_sorted]
 	run_command(sort_command)
 
 	# Delete interim files (sam, modified sam, unsorted bam) unless otherwise specified.
@@ -805,12 +807,12 @@ def calculate_ST(allele_scores, ST_db, gene_names, sample_name, mlst_delimiter, 
 		try:
 			clean_st = ST_db[allele_string]
 		except KeyError:
-			print "This combination of alleles was not found in the sequence type database:",
-			print sample_name,
+			print("This combination of alleles was not found in the sequence type database:", end=' ')
+			print(sample_name, end=' ')
 			for gene in allele_scores:
 				(allele,diffs,depth_problems,divergence) = allele_scores[gene]
-				print allele,
-			print
+				print(allele, end=' ')
+			print()
 			clean_st = "NF"
 	else:
 		clean_st = "ND"
@@ -847,7 +849,7 @@ def parse_ST_database(ST_filename,gene_names_from_fai):
 	ST_db = {} # key = allele string, value = ST
 	gene_names = []
 	num_gene_cols_expected = len(gene_names_from_fai)
-	print "Attempting to read " + str(num_gene_cols_expected) + " loci from ST database " + ST_filename
+	print("Attempting to read " + str(num_gene_cols_expected) + " loci from ST database " + ST_filename)
 	with open(ST_filename) as f:
 		count = 0
 		for line in f:
@@ -857,23 +859,23 @@ def parse_ST_database(ST_filename,gene_names_from_fai):
 				gene_names = line_split[1:min(num_gene_cols_expected+1,len(line_split))]
 				for g in gene_names_from_fai:
 					if g not in gene_names:
-						print "Warning: gene " + g + " in database file isn't among the columns in the ST definitions: " + ",".join(gene_names)
-						print " Any sequences with this gene identifer from the database will not be included in typing."
+						print("Warning: gene " + g + " in database file isn't among the columns in the ST definitions: " + ",".join(gene_names))
+						print(" Any sequences with this gene identifer from the database will not be included in typing.")
 						if len(line_split) == num_gene_cols_expected+1:
 							gene_names.pop() # we read too many columns
 							num_gene_cols_expected -= 1
 				for g in gene_names:
 					if g not in gene_names_from_fai:
-						print "Warning: gene " + g + " in ST definitions file isn't among those in the database " + ",".join(gene_names_from_fai)
-						print " This will result in all STs being called as unknown (but allele calls will be accurate for other loci)."
+						print("Warning: gene " + g + " in ST definitions file isn't among those in the database " + ",".join(gene_names_from_fai))
+						print(" This will result in all STs being called as unknown (but allele calls will be accurate for other loci).")
 			else:
 				ST = line_split[0]
-				if ST not in ST_db.values():
+				if ST not in list(ST_db.values()):
 					ST_string = " ".join(line_split[1:num_gene_cols_expected+1])
 					ST_db[ST_string] = ST
 				else:
-					print "Warning: this ST is not unique in the ST definitions file: " + ST
-		print "Read ST database " + ST_filename + " successfully"
+					print("Warning: this ST is not unique in the ST definitions file: " + ST)
+		print("Read ST database " + ST_filename + " successfully")
 		return (ST_db, gene_names)
 
 def get_allele_name_from_db(allele,run_type,args,unique_allele_symbols=False,unique_cluster_symbols=False):
@@ -935,7 +937,7 @@ def group_allele_dict_by_gene(by_allele,run_type,args,unique_cluster_symbols=Fal
 
 def dict_of_dicts_inverted_ind(dd):
 	res = dict()
-	for (key,val) in dd.items():
+	for (key,val) in list(dd.items()):
 		res.update(dict((key2,key) for key2 in val))
 	return res
 
@@ -945,7 +947,7 @@ def parse_scores(run_type,args,scores, hash_edge_depth,
 					unique_cluster_symbols,unique_allele_symbols, pileup_file):
 
 	# sort into hash for each gene locus
-	scores_by_gene = group_allele_dict_by_gene(dict( (allele,val) for (allele,val) in scores.items() \
+	scores_by_gene = group_allele_dict_by_gene(dict( (allele,val) for (allele,val) in list(scores.items()) \
 			if coverage_allele[allele] > args.min_coverage ),
 			run_type,args,
 			unique_cluster_symbols,unique_allele_symbols)
@@ -956,7 +958,7 @@ def parse_scores(run_type,args,scores, hash_edge_depth,
 	for gene in scores_by_gene:
 
 		gene_hash = scores_by_gene[gene]
-		scores_sorted = sorted(gene_hash.iteritems(),key=operator.itemgetter(1)) # sort by score
+		scores_sorted = sorted(iter(gene_hash.items()),key=operator.itemgetter(1)) # sort by score
 		(top_allele,top_score) = scores_sorted[0]
 
 		# check if depth is adequate for confident call
@@ -1233,7 +1235,7 @@ def read_scores_file(scores_file):
 	mix_rates = {}
 	scores = {}
 
-	f = file(scores_file,"r")
+	f = open(scores_file,"r")
 
 	for line in f:
 		line_split = line.rstrip().split("\t")
@@ -1266,7 +1268,7 @@ def run_srst2(args, fileSets, dbs, run_type):
 	return db_reports, db_results_list
 
 def samtools_index(fasta_file):
-	check_samtools_version()
+	#check_samtools_version() see HACK above
 	fai_file = fasta_file + '.fai'
 	if not os.path.exists(fai_file):
 		run_command([get_samtools_exec(), 'faidx', fasta_file])
@@ -1279,7 +1281,7 @@ def process_fasta_db(args, fileSets, run_type, db_reports, db_results_list, fast
 	db_path, db_name = os.path.split(fasta) # database
 	(db_name,db_ext) = os.path.splitext(db_name)
 	db_results = "__".join([args.output,run_type,db_name,"results.txt"])
-	db_report = file(db_results,"w")
+	db_report = open(db_results,"w")
 	db_reports.append(db_results)
 
 	# Get sequence lengths and gene names
@@ -1459,9 +1461,9 @@ def map_fileSet_to_db(args, sample_name, fastq_inputs, db_name, fasta, size, gen
 		if uncertainty_flags != ["-"] and not args.save_scores and not os.path.exists(scores_output_file):
 			# print full score set
 			logging.info("Printing all MLST scores to " + scores_output_file)
-			scores_output = file(scores_output_file, 'w')
+			scores_output = open(scores_output_file, 'w')
 			scores_output.write("Allele\tScore\tAvg_depth\tEdge1_depth\tEdge2_depth\tPercent_coverage\tSize\tMismatches\tIndels\tTruncated_bases\tDepthNeighbouringTruncation\tMmaxMAF\n")
-			for allele in scores.keys():
+			for allele in list(scores.keys()):
 				score = scores[allele]
 				scores_output.write('\t'.join([allele, str(score), str(avg_depth_allele[allele]), \
 					str(hash_edge_depth[allele][0]), str(hash_edge_depth[allele][1]), \
@@ -1475,9 +1477,9 @@ def map_fileSet_to_db(args, sample_name, fastq_inputs, db_name, fasta, size, gen
 			full_results = "__".join([args.output,"fullgenes",db_name,"results.txt"])
 			logging.info("Printing verbose gene detection results to " + full_results)
 			if os.path.exists(full_results):
-				f = file(full_results,"a")
+				f = open(full_results,"a")
 			else:
-				f = file(full_results,"w") # create and write header
+				f = open(full_results,"w") # create and write header
 				f.write("\t".join(["Sample","DB","gene","allele","coverage","depth","diffs","uncertainty","divergence","length", "maxMAF","clusterid","seqid","annotation"])+"\n")
 		for gene in allele_scores:
 			(allele,diffs,depth_problem,divergence) = allele_scores[gene] # gene = top scoring alleles for each cluster
@@ -1523,7 +1525,7 @@ def map_fileSet_to_db(args, sample_name, fastq_inputs, db_name, fasta, size, gen
 
 def compile_results(args,mlst_results,db_results,compiled_output_file):
 
-	o = file(compiled_output_file,"w")
+	o = open(compiled_output_file,"w")
 
 	# get list of all samples and genes present in these datasets
 	sample_list = [] # each entry is a sample present in at least one db
@@ -1546,7 +1548,7 @@ def compile_results(args,mlst_results,db_results,compiled_output_file):
 				if mlst_cols == 0:
 					mlst_header_string = test_string
 			else:
-				test_string = mlst_result[mlst_result.keys()[0]] # no header line?
+				test_string = mlst_result[list(mlst_result.keys())[0]] # no header line?
 			test_string_split = test_string.split("\t")
 			this_mlst_cols = len(test_string_split)
 			if (mlst_cols == 0) or (mlst_cols == this_mlst_cols):
@@ -1636,8 +1638,8 @@ def compile_results(args,mlst_results,db_results,compiled_output_file):
 
 	# log ST counts
 	if len(mlst_results_master) > 0:
-		logging.info("Detected " + str(len(st_counts.keys())) + " STs: ")
-		sts = st_counts.keys()
+		logging.info("Detected " + str(len(list(st_counts.keys()))) + " STs: ")
+		sts = list(st_counts.keys())
 		sts.sort()
 		for st in sts:
 			logging.info("ST" + st + "\t" + str(st_counts[st]))
@@ -1655,9 +1657,9 @@ def main():
 		if not os.path.exists(output_dir):
 			try:
 				os.makedirs(output_dir)
-				print "Created directory " + output_dir + " for output"
+				print("Created directory " + output_dir + " for output")
 			except:
-				print "Error. Specified output as " + args.output + " however the directory " + output_dir + " does not exist and our attempt to create one failed."
+				print("Error. Specified output as " + args.output + " however the directory " + output_dir + " does not exist and our attempt to create one failed.")
 
 	if args.log is True:
 		logfile = args.output + ".log"
@@ -1702,9 +1704,9 @@ def main():
 		if not args.mlst_definitions:
 
 			# print warning to screen to alert user, may want to stop and restart
-			print "Warning, MLST allele sequences were provided without ST definitions:"
-			print " allele sequences: " + str(args.mlst_db)
-			print " these will be mapped and scored, but STs can not be calculated"
+			print("Warning, MLST allele sequences were provided without ST definitions:")
+			print(" allele sequences: " + str(args.mlst_db))
+			print(" these will be mapped and scored, but STs can not be calculated")
 
 			# log
 			logging.info("Warning, MLST allele sequences were provided without ST definitions:")
