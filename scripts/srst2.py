@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # SRST2 - Short Read Sequence Typer (v2)
 # Python Version 2.7.5
